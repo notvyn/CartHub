@@ -29,12 +29,13 @@ CartHub::CartHub () {
 };
 
 // Appends a new item node to the end of the doubly linked list.
-void CartHub::addItem(string name, string category, int quantity, double price) {
+void CartHub::addItem(string name, string category, int quantity, string unit, double price) {
     Node* newNode = new Node(name);
 
     newNode->category = category;
     newNode->price = price;
     newNode->quantity = quantity;
+    newNode->unit = unit;
 
     if (head == nullptr) {
         head = tail = newNode;
@@ -120,7 +121,7 @@ bool CartHub::displayCart(char mode) {
             while (temp != nullptr) {
                 counter += 1;
                 string productName = temp->itemName + " (" + temp->category + ")";
-                cout << left << setw(5) << counter << left << setw(30) << productName << right << setw(15) << " - Qty: " << temp->quantity << endl;
+                cout << left << setw(5) << counter << left << setw(30) << productName << right << setw(12) << " - Qty: " << temp->quantity << " " << temp->unit << endl;
                 temp = temp->next;
             }
             cout << "----------------------------------------------------" << endl;
@@ -133,7 +134,7 @@ bool CartHub::displayCart(char mode) {
                 counter += 1;
                 string productName = temp->itemName + " (" + temp->category + ")";
                 // Aligned specifically for a receipt look
-                cout << left << setw(4) << counter << left << setw(25) << productName << "x" << left << setw(4) << temp->quantity << "PHP " << right << setw(10) << fixed << setprecision(2) << temp->price << endl;
+                cout << left << setw(4) << counter << left << setw(25) << productName << "x" << left << setw(4) << temp->quantity << " " << temp->unit << " PHP " << right << setw(10) << fixed << setprecision(2) << temp->price << endl;
                 totalPrice += (temp->price * temp->quantity);
                 temp = temp->next;
             }
@@ -147,7 +148,8 @@ bool CartHub::displayCart(char mode) {
             while (temp != nullptr) {
                 counter += 1;
                 string productName = temp->itemName + " (" + temp->category + ")";
-                cout << left << setw(5) << counter << left << setw(20) << productName << setw(5) << " - Qty: " << left << setw(5) << temp->quantity << left << setw(10) << " - PHP " << fixed << setprecision(2) << temp->price << endl;
+                string productQty = to_string(temp->quantity) + " " + temp->unit;
+                cout << left << setw(5) << counter << left << setw(20) << productName << setw(5) << " - Qty: " << left << setw(5) << productQty << left << setw(10) << " - PHP " << fixed << setprecision(2) << temp->price << endl;
                 totalPrice += (temp->price * temp->quantity);
                 temp = temp->next;
             }
@@ -262,7 +264,7 @@ void CartHub::generateReceipt(string receiptName) {
     // Write the header to the FILE (notice we use receiptFile instead of cout)
     receiptFile << "************** CARTHUB RECEIPT SUMMARY ***************" << endl;
 
-    string dateBuffer = formatDate("Week %U - %b, %Y");
+    string dateBuffer = formatDate("Week %U - %b %Y");
 
     receiptFile << "----------------- " << dateBuffer << " ----------------" << endl;
     
@@ -274,7 +276,7 @@ void CartHub::generateReceipt(string receiptName) {
     while (temp != nullptr) {
         counter += 1;
         string productName = temp->itemName + " (" + temp->category + ")";
-        receiptFile << left << setw(4) << counter << left << setw(25) << productName << "x" << left << setw(4) << temp->quantity << "PHP " << right << setw(10) << fixed << setprecision(2) << temp->price << endl;
+        receiptFile << left << setw(4) << counter << left << setw(25) << productName << "x" << left << setw(4) << temp->quantity << " " << temp->unit << " PHP " << right << setw(10) << fixed << setprecision(2) << temp->price << endl;
         totalSpent += (temp->price * temp->quantity); // Keep a running total
         temp = temp->next;
     }
@@ -356,12 +358,13 @@ void CartHub::loadData() {
     // Read the file line by line
     while (getline(inFile, line)) {
         stringstream ss(line);
-        string name, category, qtyStr, priceStr;
+        string name, category, qtyStr, unit, priceStr;
 
         // Chop the line into pieces using the pipe '|' as a cutting point
         getline(ss, name, '|');
         getline(ss, category, '|');
         getline(ss, qtyStr, '|');
+        getline(ss, unit, '|');
         getline(ss, priceStr, '|');
 
         // Safety check: Make sure the line wasn't blank
@@ -371,7 +374,7 @@ void CartHub::loadData() {
                 double price = stod(priceStr);
                 
                 // Rebuild the list
-                addItem(name, category, quantity, price);
+                addItem(name, category, quantity, unit, price);
             } catch (...) {
                 // If the save file got corrupted, skip that line
                 continue; 
@@ -397,6 +400,7 @@ void CartHub::saveData() {
         outFile << temp->itemName << "|"
                 << temp->category << "|"
                 << temp->quantity << "|"
+                << temp->unit << "|"
                 << temp->price << endl;
         temp = temp->next;
     }
@@ -438,7 +442,7 @@ void promptAddItems(CartHub& myCart) {
         bool hasItems = myCart.displayCart('D');
         cout << "\n******** ADDING ITEMS (Type '0' for name to stop) ********" << endl;
 
-        string itemName, category;
+        string itemName, category, unit;
         int quantity;
 
         cout << "Enter product name: ";
@@ -457,18 +461,46 @@ void promptAddItems(CartHub& myCart) {
         }
 
         category = selectCategory();
-        
-        cout << "Enter quantity: ";
-        cin >> quantity;
-        cin.ignore();
 
-        if (cin.fail() || quantity <= 0) {
-            cin.clear();
-            cout << "Invalid quantity. Please enter a valid number greater than 0." << endl;
+        if (category == "0") {
+            cout << "Item Cancelled.";
+            waitForEnter();
+            cout << endl;
+            continue;
+        }
+        
+        while (true) {
+            cout << "Enter quantity ('0' to cancel): ";
+            cin >> quantity;
+            cin.ignore();
+
+            if (cin.fail() || quantity < 0) {
+                cin.clear();
+                cout << "Invalid quantity. Please enter a valid number greater than 0." << endl;
+            }
+            else {
+                break;
+            }
+        }
+
+        if (quantity == 0) {
+            cout << "Item Cancelled.";
+            waitForEnter();
+            cout << endl;
+            continue;
+        }
+
+        unit = selectUnit();
+
+        if (unit == "0") {
+            cout << "Item Cancelled.";
+            waitForEnter();
+            cout << endl;
+            continue;
         }
 
         // Add to List
-        myCart.addItem(itemName, category, quantity);
+        myCart.addItem(itemName, category, quantity, unit);
         cout << "Successfully added " << quantity << " " << itemName << " on " << category << " category." << endl << endl;
     }
 }
@@ -534,7 +566,7 @@ void promptEditItem(CartHub& myCart) {
             if (!(itemFound == "")) {
                 cartProperty selectedItem = myCart.getItem(targetNumber);
 
-                cout << "--- Editing: " << selectedItem.itemName << " (" << selectedItem.category << ") ---" << endl;
+                cout << "--- EDITING: " << selectedItem.itemName << " (" << selectedItem.category << ") ---" << endl;
                 cout << "Current Price: PHP " << fixed << setprecision(2) << selectedItem.price << " | Qty: " << selectedItem.quantity << endl << endl; 
 
                 int choice;
@@ -752,7 +784,7 @@ string selectCategory() {
     int catChoice;
     string category;
     
-    cout << "\nSelect Category:" << endl;
+    cout << "\nSelect Category: (Enter '0' to cancel)" << endl;
     cout << left << setw(30) << "[1] Produce (Fruits & Veg)" << setw(30) << "[2] Meat & Seafood" << setw(30) << "[3] Dairy & Eggs" << endl;
     cout << left << setw(30) << "[4] Bakery & Bread" << setw(30) << "[5] Pantry & Dry Goods" << setw(30) << "[6] Beverages" << endl;
     cout << left << setw(30) << "[7] Snacks & Sweets" << setw(30) << "[8] Personal Care & Hygiene" << setw(30) << "[9] Household & Cleaning" << endl;
@@ -761,19 +793,19 @@ string selectCategory() {
     while (true) {
         cout << "Choice (1-10): ";
         cin >> catChoice;
+        cin.ignore();
         
-        if (cin.fail() || catChoice < 1 || catChoice > 10) {
+        if (cin.fail() || catChoice < 0 || catChoice > 10) {
             cin.clear();
-            cin.ignore(10000, '\n');
-            cout << "Invalid choice. Please enter a number between 1 and 10." << endl;
+            cout << "Invalid choice. Please enter a number between 0 and 10." << endl;
         } else {
-            cin.ignore(10000, '\n');
             break;
         }
     }
 
     // Map the number to the string
     switch (catChoice) {
+        case 0: category = "0"; break;
         case 1: category = "Produce"; break;
         case 2: category = "Meat"; break;
         case 3: category = "Dairy"; break;
@@ -791,6 +823,45 @@ string selectCategory() {
     }
     
     return category;
+}
+
+string selectUnit() {
+    int unitChoice;
+    string unit;
+    
+    cout << "\nSelect Unit (Enter '0' to cancel):" << endl;
+    cout << left << setw(30) << "[1] pcs (Pieces/Count)" << setw(30) << "[2] kg (Kilograms)" << endl;
+    cout << left << setw(30) << "[3] g (Grams)" << setw(30) << "[4] pk (Pack/Bundle)" << endl;
+    cout << "[5] Custom / Other" << endl;
+    
+    while (true) {
+        cout << "Choice (1-5): ";
+        cin >> unitChoice;
+        
+        if (cin.fail() || unitChoice < 0 || unitChoice > 5) {
+            cin.clear();
+            cout << "Invalid choice. Please enter a number between 0 and 5." << endl;
+        } else {
+            break;
+        }
+        cin.ignore();
+    }
+
+    // Map the number to the string
+    switch (unitChoice) {
+        case 0: unit = "0"; break;
+        case 1: unit = "pcs"; break;
+        case 2: unit = "kg"; break;
+        case 3: unit = "g"; break;
+        case 4: unit = "pk"; break;
+        case 5: 
+            cout << "Type custom unit name: ";
+            getline(cin >> ws, unit);
+            unit[0] = toupper(static_cast<unsigned char>(unit[0])); 
+            break;
+    }
+    
+    return unit;
 }
 
 // Renders the header and available hotkeys for the Planning room.
