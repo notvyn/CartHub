@@ -37,10 +37,10 @@ Standard arrays or vectors require $O(n)$ time to shift elements during deletion
 ```text
 ************** CARTHUB RECEIPT SUMMARY ***************
 ----------------- Week 19 - May, 2026 ----------------
-1   Apples (Produce)         x2   PHP      30.00
-2   Milk (Dairy)             x1   PHP      95.00
+1   Apples (Produce)       x2  pcs   PHP      30.00
+2   Milk (Dairy)           x1  pk    PHP      95.00
 ......................................................
-TOTAL ITEMS: 2         AMOUNT DUE: PHP 125.00
+TOTAL ITEMS: 2         AMOUNT DUE: PHP 155.00
 ======================================================
 ```
 
