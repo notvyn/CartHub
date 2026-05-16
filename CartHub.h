@@ -13,6 +13,7 @@ using namespace std;
 struct cartProperty {
     string itemName;
     string category;
+    string unit;
     int quantity;
     double price;
 };
@@ -21,6 +22,7 @@ struct cartProperty {
 struct Node {
     string itemName;
     string category;
+    string unit;
     int quantity;
     double price;
     Node* next;
@@ -45,7 +47,7 @@ public:
     CartHub();
 
     // Appends a new item to the end of the linked list.
-    void addItem(string name, string category, int quantity, double price = 0.00);
+    void addItem(string name, string category, int quantity, string unit, double price = 0.00);
     
     // Safely deallocates all node memory and resets list pointers.
     void clearList();
@@ -114,6 +116,9 @@ void runActiveMode(char mode, CartHub& myCart);
 
 // Renders the 10-item category UI, validates numeric input, and returns the category string.
 string selectCategory();
+
+// Renders the 5-item unit UI, validates numeric input, and returns the unit string.
+string selectUnit();
 
 // UI Wrappers that print the headers and hotkey options for specific rooms.
 void showPlanMode(CartHub& myCart);
